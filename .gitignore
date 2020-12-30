@@ -1,0 +1,9 @@
+web/webapp/node_modules/
+web/webapp/.nuxt
+web/webapp/dist
+
+api/webapi/bin
+api/webapi/build
+api/webapi/.gradle
+
+.DS_Store

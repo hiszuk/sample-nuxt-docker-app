@@ -1,0 +1,62 @@
+version: "3"
+services:
+    db:
+        build:
+            context: ./db/
+            dockerfile: Dockerfile
+        image: sample/mysql:latest
+        environment: 
+            MYSQL_ROOT_PASSWORD: mysql
+            MYSQL_DATABASE: sampledb
+            MYSQL_APP_USER: sample
+            MYSQL_APP_PASSWORD: sample
+        ports: 
+            - "${PORT_DB}:3306"
+    
+    api:
+        build:
+            context: ./api/
+            dockerfile: Dockerfile
+        image: sample/api:latest
+        depends_on: 
+            - db
+        environment:
+            SPRING_DATASOURCE_URL: 'jdbc:mysql://db:3306/sampledb?useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=JST&useUnicode=true&characterEncoding=utf-8'
+            SPRING_DATASOURCE_USERNAME: sample
+            SPRING_DATASOURCE_PASSWORD: sample
+            SPRING_DATASOURCE_HIKARI_CONNECTIONTIMEOUT: 30000
+            SPRING_DATASOURCE_HIKARI_IDLETIMEOUT: 600000
+            SERVER_PORT: 2000
+        entrypoint:
+            - /usr/local/bin/wait-for-it.sh
+            - db:3306
+            - --timeout=300
+            - --
+            - java
+            - -Xms64m
+            - -Xmx512m
+            - -Djava.security.egd=file:/dev/./urandom
+            - -jar
+            - /webapi/build/libs/webapi-1.0.0-SNAPSHOT.jar
+        ports: 
+            - "${PORT_API}:2000"
+    
+    web:
+        build:
+            context: ./web/
+            dockerfile: Dockerfile
+        image: sample/web:latest
+        depends_on: 
+            - api
+        environment: 
+            API_URL: "${REST_SRV}:${PORT_API}"
+        command:
+            - /usr/local/bin/wait-for-it.sh
+            - api:2000
+            - --timeout=300
+            - --
+            - npm
+            - run
+            - start
+        ports:  
+            - "${PORT_WEB}:3000"
